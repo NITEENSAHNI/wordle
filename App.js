@@ -37,48 +37,77 @@ const App = () => {
   // Function to populate the letter matrix with words and random letters
   const createMatrix = () => {
     const grid = Array(matrixSize).fill(null).map(() => Array(matrixSize).fill(''));
-    
-    currentLevel.words.forEach(({ word, direction, start }) => {
-      const [startRow, startCol] = start;
-      let canPlaceWord = true;
-
-      if (direction === "horizontal" && (startCol + word.length) <= matrixSize) {
-        for (let i = 0; i < word.length; i++) {
-          if (grid[startRow][startCol + i] !== '' && grid[startRow][startCol + i] !== word[i]) {
-            canPlaceWord = false;
-            break;
-          }
-        }
-        if (canPlaceWord) {
+    const placedWords = []; // Array to keep track of successfully placed words
+  
+    currentLevel.words.forEach(({ word }) => {
+      let placed = false; // Flag to check if the word is placed
+      let attempts = 0; // To avoid infinite loops
+  
+      while (!placed && attempts < 100) { // Limit attempts to prevent infinite loop
+        const direction = Math.random() < 0.5 ? "horizontal" : "vertical"; // Randomly choose direction
+        const startRow = Math.floor(Math.random() * matrixSize);
+        const startCol = Math.floor(Math.random() * matrixSize);
+        
+        if (direction === "horizontal" && (startCol + word.length) <= matrixSize) {
+          let canPlaceWord = true;
+  
+          // Check for conflicts
           for (let i = 0; i < word.length; i++) {
-            grid[startRow][startCol + i] = word[i];
+            if (grid[startRow][startCol + i] !== '' && grid[startRow][startCol + i] !== word[i]) {
+              canPlaceWord = false; // Conflict found
+              break;
+            }
           }
-        }
-      } else if (direction === "vertical" && (startRow + word.length) <= matrixSize) {
-        for (let i = 0; i < word.length; i++) {
-          if (grid[startRow + i][startCol] !== '' && grid[startRow + i][startCol] !== word[i]) {
-            canPlaceWord = false;
-            break;
+  
+          // Place the word if no conflicts
+          if (canPlaceWord) {
+            for (let i = 0; i < word.length; i++) {
+              grid[startRow][startCol + i] = word[i]; // Place the word
+            }
+            placedWords.push({ word, direction, start: [startRow, startCol] }); // Save the word info
+            placed = true; // Word successfully placed
           }
-        }
-        if (canPlaceWord) {
+        } else if (direction === "vertical" && (startRow + word.length) <= matrixSize) {
+          let canPlaceWord = true;
+  
+          // Check for conflicts
           for (let i = 0; i < word.length; i++) {
-            grid[startRow + i][startCol] = word[i];
+            if (grid[startRow + i][startCol] !== '' && grid[startRow + i][startCol] !== word[i]) {
+              canPlaceWord = false; // Conflict found
+              break;
+            }
+          }
+  
+          // Place the word if no conflicts
+          if (canPlaceWord) {
+            for (let i = 0; i < word.length; i++) {
+              grid[startRow + i][startCol] = word[i]; // Place the word
+            }
+            placedWords.push({ word, direction, start: [startRow, startCol] }); // Save the word info
+            placed = true; // Word successfully placed
           }
         }
+        
+        attempts++; // Increment attempts to avoid infinite loop
       }
     });
-
+  
+    // Fill empty cells with random letters
     for (let row = 0; row < matrixSize; row++) {
       for (let col = 0; col < matrixSize; col++) {
         if (grid[row][col] === '') {
-          grid[row][col] = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+          grid[row][col] = String.fromCharCode(97 + Math.floor(Math.random() * 26)); // Fill with random letters
         }
       }
     }
-
+  
     setMatrix(grid);
+  
+    // Save placed words for future use (like checking answers)
+    currentLevel.words = placedWords; // Update the currentLevel's words with placed positions
   };
+  
+  
 
   useEffect(() => {
     createMatrix();
