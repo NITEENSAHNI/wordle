@@ -11,7 +11,7 @@ const SettingsScreen = () => {
       <Text style={styles.title}>Settings</Text>
       <View style={styles.settingItem}>
         <Text style={styles.settingLabel}>Enable Notifications</Text>
-        <Switch
+        <Switch 
           onValueChange={toggleSwitch}
           value={isEnabled}
         />
