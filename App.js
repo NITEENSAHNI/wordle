@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Button } from 'react-native';
 import Timer from './components/Timer'; // Import the Timer component
+import WinnerScreen from './screens/WinnerScreen';
+import levels from './data'; // Adjust the path as necessary
+
 
 // Crossword words and hints (horizontal or vertical)
-const levels = [
-  {
-    words: [
-      { word: "gram", hint: "The original solar panel technology.", direction: "horizontal", start: [0, 0] },
-      { word: "gravity", hint: "What goes up must come down. Thanks, Newton!", direction: "vertical", start: [0, 5] },
-      { word: "atom", hint: "The building block of everything, even your snack.", direction: "horizontal", start: [2, 0] },
-      { word: "osmosis", hint: "The science of water being a little too clingy.", direction: "vertical", start: [1, 3] },
-      { word: "test", hint: "When water decides it's time for a solo flight.", direction: "vertical", start: [2, 4] },
-    ],
-  },
-];
+// const levels = [
+//   {
+//     words: [
+//       { word: "gram", hint: "The original solar panel technology.", direction: "horizontal", start: [0, 0] },
+//       { word: "gravity", hint: "What goes up must come down. Thanks, Newton!", direction: "vertical", start: [0, 5] },
+//       { word: "atom", hint: "The building block of everything, even your snack.", direction: "horizontal", start: [2, 0] },
+//       { word: "osmosis", hint: "The science of water being a little too clingy.", direction: "vertical", start: [1, 3] },
+//       { word: "test", hint: "When water decides it's time for a solo flight.", direction: "vertical", start: [2, 4] },
+//     ],
+//   },
+// ];
 
 // Function to find the longest word length
 const findLongestWordLength = (words) => {
@@ -21,13 +24,15 @@ const findLongestWordLength = (words) => {
 };
 
 const App = () => {
-  const [currentLevel, setCurrentLevel] = useState(levels[0]);
+  const [currentLevelIndex, updateCurrentLevelIndex] = useState(0)
+  const [currentLevel, setCurrentLevel] = useState(levels[currentLevelIndex]);
   const [completedWords, setCompletedWords] = useState([]);
   const [matrixSize, setMatrixSize] = useState(findLongestWordLength(currentLevel.words) + 1);
   const [matrix, setMatrix] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [highlightedCells, setHighlightedCells] = useState(new Set());
-  const [initialTime, setInitialTime] = useState(10); // Use state for timer value
+  const [initialTime, setInitialTime] = useState(60); // Use state for timer value
+  const [isWinner, setIsWinner] = useState(false);
 
   // Function to populate the letter matrix with words and random letters
   const createMatrix = () => {
@@ -80,33 +85,66 @@ const App = () => {
   }, [currentLevel, matrixSize]);
 
   const resetGame = () => {
-    // Reset the current level to the first one (or change this logic based on your game design)
-    setCurrentLevel(levels[0]);
+    // Reset the current level to the first one
+    setCurrentLevel(levels[currentLevel]);
   
-    // Set the matrix size (you can increase it or keep it the same based on your design)
-    setMatrixSize(matrixSize + 1); // Keep the same size for simplicity
+    // Reset the matrix size to its initial value
+    setMatrixSize(matrixSize   + 1); // Adjust to the length of the first level
   
     // Reset the completed words array
     setCompletedWords([]);
   
-    // // Reset the highlighted cells
-    // setHighlightedCells(new Set());
+    // Reset the highlighted cells
+    setHighlightedCells(new Set());
   
     // Reset the user input
     setUserInput('');
   
-    // Optionally, increase the timer for the next round
-    setInitialTime(prev => prev + 10); // Increase by 10 seconds for the next round
+    // Reset the timer to its initial value
+    setInitialTime(10); // Reset to initial timer value (10 seconds or whatever your starting time is)
   
     // Recreate the letter matrix
     createMatrix();
+
+    setIsWinner(false);
+  };
+  const nextLevel = () => {
+    // Reset the current level to the first one
+    
+    
+    setCurrentLevel(levels[currentLevel]);
+  
+    // Reset the matrix size to its initial value
+    setMatrixSize(matrixSize   + 1); // Adjust to the length of the first level
+  
+    // Reset the completed words array
+    setCompletedWords([]);
+  
+    // Reset the highlighted cells
+    setHighlightedCells(new Set());
+  
+    // Reset the user input
+    setUserInput('');
+  
+    // Reset the timer to its initial value
+    setInitialTime(10); // Reset to initial timer value (10 seconds or whatever your starting time is)
+  
+    // Recreate the letter matrix
+    createMatrix();
+
+    setIsWinner(false);
   };
   
   // Create a function to handle the time-up scenario
   const handleTimeUp = () => {
-    alert('Time is up!');
-    resetGame();
+    if (matrixSize >= 8) {
+      alert('Game Over! You reached the maximum matrix size and lost the game.');
+    } else {
+      alert('Time is up! Try again!');
+      resetGame();
+    }
   };
+  
 
   const handleLetterSelection = (letter) => {
     const formedWord = [...completedWords, letter].join('');
@@ -114,16 +152,27 @@ const App = () => {
   };
 
   const checkSelectedWord = (formedWord) => {
+
+    if(formedWord=='win'){
+      setIsWinner(true)      
+      console.log(isWinner)
+    }
     const matchingWord = currentLevel.words.find(
       (wordObj) => wordObj.word === formedWord && !completedWords.includes(wordObj.word)
     );
-
+    
     if (matchingWord) {
       setCompletedWords([...completedWords, matchingWord.word]);
       alert('Correct! You found: ' + matchingWord.word);
       highLightCorrectLetters(matchingWord);
+  
+      // Check for win condition
+      if (completedWords.length + 1 === currentLevel.words.length) {
+        setIsWinner(true);
+      }
     }
   };
+  
 
   const highLightCorrectLetters = ({ word, direction, start }) => {
     const [startRow, startCol] = start;
@@ -149,45 +198,51 @@ const App = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Crossword Game</Text>
-      <Timer onTimeUp={handleTimeUp} initialTime={initialTime} /> {/* Add the Timer component */}
-      <View style={styles.hintsContainer}>
-        {currentLevel.words.map((wordObj, index) => (
-          <Text key={index} style={styles.hintText}>
-            {wordObj.hint} {completedWords.includes(wordObj.word) && '✔️'}
-          </Text>
-        ))}
-      </View>
-
-      <View style={styles.matrixContainer}>
-        {matrix.map((row, rowIndex) => (
-          <View key={rowIndex} style={styles.row}>
-            {row.map((letter, colIndex) => {
-              const cellKey = `${rowIndex},${colIndex}`;
-              const isHighlighted = highlightedCells.has(cellKey);
-              return (
-                <TouchableOpacity
-                  key={colIndex}
-                  style={[styles.letter, isHighlighted && styles.completedLetter]}
-                  onPress={() => handleLetterSelection(letter)}
-                >
-                  <Text style={styles.letterText}>{letter}</Text>
-                </TouchableOpacity>
-              );
-            })}
+      {isWinner ? (
+        <WinnerScreen onPlayAgain={nextLevel} />
+      ) : (
+        <>
+          <Text style={styles.title}>Crossword Game</Text>
+          <Timer onTimeUp={handleTimeUp} initialTime={initialTime} />
+          <View style={styles.hintsContainer}>
+            {currentLevel.words.map((wordObj, index) => (
+              <Text key={index} style={styles.hintText}>
+                {wordObj.hint} {completedWords.includes(wordObj.word) && '✔️'}
+              </Text>
+            ))}
           </View>
-        ))}
-      </View>
-
-      <TextInput
-        style={styles.input}
-        value={userInput}
-        onChangeText={setUserInput}
-        placeholder="Type your guess here"
-      />
-      <Button title="Submit" onPress={handleInputSubmit} />
+  
+          <View style={styles.matrixContainer}>
+            {matrix.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.row}>
+                {row.map((letter, colIndex) => {
+                  const cellKey = `${rowIndex},${colIndex}`;
+                  const isHighlighted = highlightedCells.has(cellKey);
+                  return (
+                    <TouchableOpacity
+                      key={colIndex}
+                      style={[styles.letter, isHighlighted && styles.completedLetter]}
+                      onPress={() => handleLetterSelection(letter)}
+                    >
+                      <Text style={styles.letterText}>{letter}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            ))}
+          </View>
+  
+          <TextInput
+            style={styles.input}
+            value={userInput}
+            onChangeText={setUserInput}
+            placeholder="Type your guess here"
+          />
+          <Button title="Submit" onPress={handleInputSubmit} />
+        </>
+      )}
     </View>
-  );
+  );  
 };
 
 const styles = StyleSheet.create({
