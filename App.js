@@ -106,7 +106,7 @@ const App = () => {
     // Save placed words for future use (like checking answers) including hints
     currentLevel.words = placedWords.map(({ word, hint, direction, start }) => ({ word, hint, direction, start })); // Keep hints intact
 };
-
+//testCOmmit
   
   
 
